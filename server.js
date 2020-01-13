@@ -57,6 +57,9 @@ app.post('/register/',game.join);
 app.post('/userProfile/',game.getStats);
 let lobbies = [];
 var gameStarted=false;
+const CONSTANTS = {
+    defaultColors: ['red', 'green', 'yellow', 'blue']
+}
 let Lobby = function() {
     let lobbyNum = lobbies.length;
     this.lobbyId = "lobby" + lobbyNum.toString();
@@ -66,6 +69,27 @@ let Lobby = function() {
     this.timer = null;
     this.timeLeft = null;
     this.guessedPlayers = [];
+    this.allTokens = {};
+
+    //in the beginning everyone is in the house
+    this.tokensInside = [
+        ['red1', 'red2', 'red3', 'red4'],
+        ['green1', 'green2', 'green3', 'green4'],
+        ['yellow1', 'yellow2', 'yellow3', 'yellow4'],
+        ['blue1', 'blue2', 'blue3', 'blue4']
+    ];
+    this.tokensOutside = [
+        [],
+        [],
+        [],
+        []
+    ];
+    this.movableTokens = [];
+    //indicates if a player has played his turn or not
+    this.hasMoved = 1;
+    this.noPlayerChange = 0;
+    //holds opponent positions
+    this.oppPositions = {}
 };
 
 let playerLobbies = {};
@@ -93,13 +117,18 @@ io.on('connection', function(socket) {
         //if there are less then 3 players in the room, add forplay
         if (lobbies[0].players.length <2 ) {
             lobbies[0].playerOnTurn = lobbies[0].players[0].id;//socket.id;
-            console.log("becomming a drawer");
+            console.log("set the player as the first one");
             console.log(lobbies[0].players[0].username);
 
             console.log("waittin to start, this player is going to start the game ");
             console.log(lobbies[0].players[0].id);
             console.log("current socket id ");
             console.log(socket.id);
+
+            //change lets draw
+            io.to(lobbies[0].playerOnTurn).emit('letsDraw');
+
+
             if(lobbies[0].players.length==1)
                   {
                     io.in(lobbies[0].lobbyId).emit('firstPlayer',lobbies[0].players[0].id);
@@ -158,26 +187,64 @@ io.on('connection', function(socket) {
         }
 
     });
+
+/*    socket.on("roll",()=>{
+      if (
+        games[socket.roomId].hasMoved == 1 && games[sock.roomId].players[games[sock.roomId].playerIndex].sock.id === sock.id) {
+
+          games[socket.roomId].players[games[sock.roomId].playerIndex].sock.emit("removeTokenShake", "");
+          games[socket.roomId].makeRoll();
+      }
+    }); */
     socket.on('userStartedGame',function(){
+
       console.log("user has started the game");
       gameStarted==true;
-        //game is started and player count is > than 3
-        //if the player count is more than 3, start the game
-          if (lobbies[0].players.length >= 3) {
-            //setting the drawer
-               result=next_turn(lobbies[0]);
-              console.log("result of the next turn");
-              console.log(result);
-          }
+      let availablePlayers = [0, 1, 2, 3];
+      var num=lobbies[0].players.length;
 
-          if(result==1)
-          {
-            //if result is 1(the game finish code-exit the game)
-            return 0;
+      if (num == 2) {
+          availablePlayers = [0, 2];
+      } else if (num == 3) {
+          availablePlayers = [0, 2, 3];
+      }
+
+        //game is started and player count is > than 3
+        //if the player count is more than 2, start the game
+        //setting the colors for the players
+        for (let i = 0; i < 4; i++) {
+            if (availablePlayers>i) {
+              console.log("The number of available player is");
+              console.log(i);
+                lobbies[0].allTokens[i] = {};
+                for (let j = 0; j < lobbies[0].tokensInside[i].length; j++) {
+                    let col = lobbies[0].tokensInside[i][j];
+                    lobbies[0].allTokens[i][col] = 0;
+                }
+
+
+              //  g.players[i] = temp[j];
+              //add color for every player
+                lobbies[0].players[i].playerColor = CONSTANTS.defaultColors[i];
+            }
+        }
+
+          if (lobbies[0].players.length >= 2) {
+            //setting the drawer
+            lobbies[0].playerOnTurn = lobbies[0].players[0].id;
+              // result=next_turn(lobbies[0]);
+
+            //  console.log("result of the next turn");
+              //console.log(result);
           }
+          //player.sock.emit("startGame", g.powerUpsLocation, availablePlayers, g.gottisInside, playerIds, names)
+            //for every p;ayer send to his sock  availablePlayers, g.gottisInside, playerIds, names
+                io.in(lobbies[0].lobbyId).emit("startGame",  availablePlayers, lobbies[0].tokensInside,lobbies[0].players );
+
             //setting ither players to watch when a player is made a drawer
-            io.in(lobbies[0].lobbyId).emit('letsWatch', lobbies[0].playerOnTurn, lobbies[0].lastDataUrl);
-            io.to(socket.id).emit('makeaguess', lobbies[0].playerOnTurn);
+            //availablePlayers, g.tokensInside, playerIds, names
+          //  io.in(lobbies[0].lobbyId).emit('letsWatch', lobbies[0].playerOnTurn,availablePlayers, lobbies[0].lastDataUrl,lobbies[0].tokensInside);
+          //  io.to(socket.id).emit('makeaguess', lobbies[0].playerOnTurn);
 
       io.in(lobbies[0].lobbyId).emit('updateSB', lobbies[0].players, lobbies[0].playerOnTurn);
     });
@@ -209,13 +276,13 @@ io.on('connection', function(socket) {
                     currLobby.playerOnTurn = currLobby.players[i].id;
                 else
                     currLobby.playerOnTurn = currLobby.players[0].id;
-                let rnd = Math.floor(Math.random() * totalWords);
-                collection.findOne({ _id: rnd }, (err, res) => {
-                    if (err) return console.error(err);
-                    io.to(currLobby.playerOnTurn).emit('letsDraw', res.word);
-                    currLobby.word = res.word;
-                    currLobby.guessedPlayers = [];
-                });
+                //let rnd = Math.floor(Math.random() * totalWords);
+        ///        collection.findOne({ _id: rnd }, (err, res) => {
+          //          if (err) return console.error(err);
+                    io.to(currLobby.playerOnTurn).emit('letsDraw');
+            //        currLobby.word = res.word;
+              //      currLobby.guessedPlayers = [];
+                //});
                 if (currLobby.players.length > 1) {
                     io.in(currLobby.lobbyId).emit('letsWatch', currLobby.playerOnTurn, currLobby.lastDataUrl);
                     io.in(currLobby.lobbyId).emit('makeaguess', currLobby.playerOnTurn);
@@ -256,8 +323,9 @@ function next_turn(lobby) {
         if (i < lobby.players.length - 1) {
           //if we have 3 players, i is 1(1<3-1),
           //not the last player(let the next player be the drawer)
+
             lobby.playerOnTurn = lobby.players[i+1].id;
-            console.log("***drawing player****");
+            console.log("***player on turn****");
             console.log(lobby.playerOnTurn);
 
         } else {
@@ -290,17 +358,13 @@ function next_turn(lobby) {
           //  console.log("***drawing player****");
           //  console.log(lobby.playerOnTurn);
         }
-        //find random word
-        let rnd = Math.floor(Math.random() * totalWords);
-        collection.findOne({ _id: rnd }, (err, res) => {
-            if (err) return console.error(err);
-            io.to(lobby.playerOnTurn).emit('letsDraw', res.word);
-            lobby.word = res.word;
-            lobby.guessedPlayers = [];
-        });
+        //emit to the current playerReady
+        io.to(lobby.playerOnTurn).emit('letsDraw');
+
+
         //player who has drawen now watches
         io.in(lobby.lobbyId).emit('letsWatch', lobby.playerOnTurn, lobby.lastDataUrl);
-        io.in(lobby.lobbyId).emit('makeaguess', lobby.playerOnTurn);
+        //io.in(lobby.lobbyId).emit('makeaguess', lobby.playerOnTurn);
         io.in(lobby.lobbyId).emit('updateSB', lobby.players, lobby.playerOnTurn);
         io.in(lobby.lobbyId).emit('nextTurn');
     }, 60000);
@@ -312,10 +376,5 @@ function next_turn(lobby) {
         io.in(lobby.lobbyId).emit('timer', timeleft.toString());
     }, 1000);
     return 0;
-    lobby.timeLeftAfterAnswer = setInterval(function() {
 
-        let timeleft = (10 - Math.ceil((Date.now() - startTime - lobby.timer._idleStart) / 1000));
-        io.in(lobby.lobbyId).emit('timer', timeleft.toString());
-    }, 1000);
-    return 0;
 }

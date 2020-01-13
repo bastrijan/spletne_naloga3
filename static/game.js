@@ -12,11 +12,13 @@
     let correct = new Audio('static/sfx/correct.mp3');
     //https://www.youtube.com/watch?v=4k8XfsqkU3o
     let nextTurn = new Audio('static/sfx/nextTurn.mp3');
-
+    const CONSTANTS = {
+        defaultColors: ['red', 'green', 'yellow', 'blue']
+    }
     let alphanumeric = /^[0-9a-zA-Z]+$/;
     let userCount=0;
     let mainSock=0;
-    let msgID = document.getElementById('msgID');
+    let msgID = document.getElementById('message_input');
     msgID.addEventListener('keyup', function onEvent(e) {
         if (e.keyCode === 13) {
           if(msgID.value[0]=="@")
@@ -26,7 +28,7 @@
               socket.emit("publicMessage", msgID.value.toLowerCase(),socket.id);
             }
           }
-            if (msgID.value.match(alphanumeric)) {
+            /*if (msgID.value.match(alphanumeric)) {
                 msgID.placeholder = "What is your guess?";
 
                 socket.emit("guess", msgID.value.toLowerCase());
@@ -34,7 +36,7 @@
             } else {
                 msgID.placeholder = "invalid input";
                 msgID.value = "";
-            }
+            } */
         }
     });
     //hiding elements on login
@@ -42,7 +44,7 @@
     hideClass(document.getElementsByClassName("msg"));
     hideClass(document.getElementsByClassName("start-btn"));
     hideClass(document.getElementsByClassName("info"));
-
+    hideClass(document.getElementsByClassName("dice-roll"));
     hideClass(document.getElementsByClassName("Canvas"));
     hideClass(document.getElementsByClassName("chat-section"));
 
@@ -101,6 +103,7 @@ function loggedInFunction(data) {
               document.getElementsByClassName("login-section")[0].style.display = "none";
               showClass(document.getElementsByClassName("Canvas"));
               document.getElementsByClassName("Canvas")[0].style.display = "flex";
+
               //showClass(document.getElementsByClassName("utils"));
               //this is where we emit the new player
               hideClass(document.getElementsByClassName("start-btn"));
@@ -151,7 +154,7 @@ switchToLogin.addEventListener('click',function(e){
 });
 startBtn.addEventListener('click',function(e){
 e.preventDefault();
-if(userCount>=3)
+if(userCount>=2)
 {
   //socket.emit('view');
   socket.emit('userStartedGame');
@@ -215,7 +218,39 @@ e.preventDefault();
         userCount-=1;
         disconnectSound.play();
     });
+    socket.on("startGame", function(availablePlayers, tokensInside,players){
+      //add for eac one(one by one player)
+      showClass(document.getElementsByClassName("dice-roll"));
+      //hideClass(document.getElementsByClassName("dice-roll"));
 
+      for (let i = 0; i <= availablePlayers.length; i++) {
+          if (availablePlayers.includes(i)) {
+              //adding profile pictures
+              debugger;
+              let profilePic = document.createElement("img");
+              let name = document.createElement("h1");
+              if(availablePlayers[i]==2){
+              name.innerText = players[i-1].username;
+            }
+              profilePic.src = "/static/img/user.png"
+              profilePic.classList.add("profilePic");
+              console.log(CONSTANTS.defaultColors[i])
+              document.querySelector("." + CONSTANTS.defaultColors[i] + ".home").appendChild(profilePic)
+              document.querySelector("." + CONSTANTS.defaultColors[i] + ".home").appendChild(name)
+              //placing gottis in positions
+              for (let j = 0; j < 4; j++) {
+                  let token = document.createElement("img");
+                  name.classList.add("name")
+                  token.classList.add("token");
+                  token.id = tokensInside[i][j];
+                  let col = token.id.slice(0, token.id.length - 1);
+                  token.src = '/static/img/tokens/' + col + '.png ';
+                  let pnt = document.querySelectorAll(".home_" + col + ".inner_space");
+                  pnt[j].appendChild(token);
+              }
+          }
+      }
+    });
     socket.on('nextTurn', function() {
         nextTurn.play();
     });

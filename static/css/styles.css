@@ -13,6 +13,13 @@ body {
     color: black;
     text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
 }
+
+.box_red .name,
+.box_blue .name {
+    top: auto;
+    top: 0%;
+}
+
 .Canvas .box {
     display: flex;
     align-items: center;
@@ -69,6 +76,30 @@ body {
 .innerHome .mid div:nth-child(2) {
     width: 60%;
 }
+.box_green .profilePic,
+.box_yellow .profilePic {
+    left: auto;
+    right: -20px;
+}
+
+
+.box_blue .profilePic,
+.box_yellow .profilePic {
+    top: auto;
+    bottom: -20px;
+}
+.profilePic {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    height: 35%;
+    width: 35%;
+    border-radius: 100%;
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    z-index: 2;
+    background-size: cover;
+    transition: all .5s ease-in-out;
+}
 
 .Canvas .home {
     border: 1.5px black solid;
@@ -83,7 +114,21 @@ body {
     border-radius: 50%;
     flex-wrap: wrap;
 }
-
+.name {
+    font-weight: bold;
+    position: absolute;
+    color: white;
+    bottom: 0%;
+    font-size: 16px;
+}
+.token {
+    z-index: 10;
+    margin: auto !important;
+    height: 78% !important;
+    width: auto !important;
+    cursor: pointer;
+    animation: bounceIn 0.8s ease-in-out;
+}
 .Canvas .red {
     background-color: #e74c3c !important;
 }
