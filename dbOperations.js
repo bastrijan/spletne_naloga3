@@ -20,6 +20,7 @@ exports.connect = function(){
 	  .catch((err) => console.error(err));
 }
 
+
 exports.disconnect = function(callback){
 	mongoose.disconnect(callback);
 }

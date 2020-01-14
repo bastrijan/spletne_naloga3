@@ -188,6 +188,27 @@ io.on('connection', function(socket) {
 
     });
 
+        socket.on("roll-dice",function(id){
+          var rolledNum=game.random(6);
+          while(rolledNum==0)
+          {
+            rolledNum=game.random(6);
+          }
+          io.in(lobbies[0].lobbyId).emit('rolled',rolledNum, id);
+          for(var k=0;k<lobbies[0].players.length;k++)
+          {
+
+            if(id=lobbies[0].players[k].id)
+            {
+              io.in(lobbies[0].lobbyId).emit('broadcastNumber', rolledNum,lobbies[0].players[k].username);
+            }
+          }
+          //find a random number for the player on turn and notify all the players afterwards
+          //get gif for the dice number that has been rolled
+
+          console.log("player rolled");
+        });
+
 /*    socket.on("roll",()=>{
       if (
         games[socket.roomId].hasMoved == 1 && games[sock.roomId].players[games[sock.roomId].playerIndex].sock.id === sock.id) {

@@ -81,6 +81,19 @@ body {
     left: auto;
     right: -20px;
 }
+.gif{
+  border-radius: 50%;
+  cursor: pointer;
+  
+}
+.roll {
+  border-radius: 50%;
+
+    position: relative;
+    font-size: 20px;
+    color: #ecf0f1;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
 
 
 .box_blue .profilePic,

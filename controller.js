@@ -16,6 +16,9 @@ exports.allgamers = function(req, res, next){
 		// res.render("allgamers.html", {gamer: gamer});
 	});
 }
+exports.random=function(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
 
 // 注册玩家
 exports.new = function(req, res, next){

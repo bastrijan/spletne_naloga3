@@ -44,10 +44,9 @@
     hideClass(document.getElementsByClassName("msg"));
     hideClass(document.getElementsByClassName("start-btn"));
     hideClass(document.getElementsByClassName("info"));
-    hideClass(document.getElementsByClassName("dice-roll"));
     hideClass(document.getElementsByClassName("Canvas"));
     hideClass(document.getElementsByClassName("chat-section"));
-
+    hideClass(document.getElementsByClassName('roll'));
     hideClass(document.getElementsByClassName("type_me"));
     hideClass(document.getElementsByClassName("type_normal"));
     hideClass(document.getElementsByClassName("type_private"));
@@ -63,7 +62,7 @@
     var startBtn= document.getElementById('start-game-btn');
     var switchToRegister=document.getElementById('createAccount');
     var switchToLogin=document.getElementById('switchToLogin');
-
+    let rollDice=document.getElementById('roll');
 
 function registrationFun(username,password)
 {
@@ -113,7 +112,6 @@ function loggedInFunction(data) {
               //showClass(document.getElementsByClassName("drawing"));
               showClass(document.getElementsByClassName("chat-section"));
 
-
           }
 
 
@@ -152,8 +150,10 @@ switchToLogin.addEventListener('click',function(e){
   showClass(document.getElementsByClassName("login-login"));
   hideClass(document.getElementsByClassName("registration-login"));
 });
+
 startBtn.addEventListener('click',function(e){
 e.preventDefault();
+
 if(userCount>=2)
 {
   //socket.emit('view');
@@ -161,6 +161,13 @@ if(userCount>=2)
 }else {
   alert("Not enough players to start. Must be more than 2 players to start the game.");
 }
+});
+rollDice.addEventListener('click',function(e){
+//e.preventDefault();
+  debugger;
+  //socket.emit('view');
+  socket.emit('roll-dice',socket.id);
+
 });
 
 startAnotherBtn.addEventListener('click',function(e){
@@ -218,20 +225,42 @@ e.preventDefault();
         userCount-=1;
         disconnectSound.play();
     });
+    socket.on("rolled",function(num,id){
+      debugger;
+      if(socket.id==id)
+      {
+
+        var roll=document.getElementsByClassName("roll");
+        roll[0].children[0].src='/static/gfx/'+num+'.gif';
+      }
+    });
     socket.on("startGame", function(availablePlayers, tokensInside,players){
       //add for eac one(one by one player)
-      showClass(document.getElementsByClassName("dice-roll"));
-      //hideClass(document.getElementsByClassName("dice-roll"));
+      debugger;
 
+
+      if(socket.id!=players[0].id)
+      {
+        hideClass(document.getElementsByClassName("start-btn"));
+        hideClass(document.getElementsByClassName("roll"));
+        hideClass(document.getElementsByClassName("info"));
+      }else {
+        hideClass(document.getElementsByClassName("start-btn"));
+        showClass(document.getElementsByClassName("roll"));
+      }
       for (let i = 0; i <= availablePlayers.length; i++) {
           if (availablePlayers.includes(i)) {
               //adding profile pictures
-              debugger;
               let profilePic = document.createElement("img");
               let name = document.createElement("h1");
-              if(availablePlayers[i]==2){
+              if(i>=2){
+
               name.innerText = players[i-1].username;
+            }else {
+              name.innerText = players[i].username;
             }
+            //se who is the the player on turn and draw
+
               profilePic.src = "/static/img/user.png"
               profilePic.classList.add("profilePic");
               console.log(CONSTANTS.defaultColors[i])
@@ -254,6 +283,17 @@ e.preventDefault();
     socket.on('nextTurn', function() {
         nextTurn.play();
     });
+    socket.on('broadcastNumber',function(number,username){
+    //say who anwered the questions correctly
+    debugger;
+    
+  var chat=document.getElementsByClassName('chat_content_inner')[0];
+  var currTime=new Date(Date.now()).toLocaleString();
+  var html='<div class="chat_message type_normal cf"><p class="message"> '+username+' just rolled the number'+number+'at'+currTime+'</p></div>';
+  var htmlObj=$(html);
+  chat.append(htmlObj[0]);
+  });
+
     socket.on('incommingMessage',function(message,username){
       var chat=document.getElementsByClassName('chat_content_inner')[0];
       var currTime=new Date(Date.now()).toLocaleString();
