@@ -160,7 +160,7 @@ switchToLogin.addEventListener('click',function(e){
 
 startBtn.addEventListener('click',function(e){
 e.preventDefault();
-
+debugger;
 if(userCount>=2)
 {
   //socket.emit('view');
@@ -231,6 +231,21 @@ e.preventDefault();
         userCount-=1;
         disconnectSound.play();
     });
+    socket.on("getTokenOut", (id, position, gottisInside, gottisOutside) => {
+        debugger;
+        removeShakeAnimation(gottisInside, gottisOutside);
+        fd = document.getElementById(position);
+        g = document.getElementById(id);
+        fd.appendChild(g);
+        //nikalda kheri position ma multiple gotti check
+        let fdLen = fd.getElementsByClassName("Token")
+        if (fdLen.length == 2) {
+            fd.classList.add("twoTokens")
+        } else if (fdLen.length > 2) {
+            fd.classList.add("multipleTokens")
+        }
+        sock.emit("finishedMoving", "");
+    })
     socket.on("rolled",function(num,id){
       debugger;
       if(socket.id==id)
@@ -369,9 +384,11 @@ e.preventDefault();
     });
 
     socket.on("addShakeAnimation", (movableTokens,currentPlayer) => {
+      debugger;
       //if its this socket
       if(socket.id==currentPlayer)
         movableTokens.forEach(element => {
+          console.log("have added shake");
             var d = document.getElementById(element);
             d.classList.add("useMe")
         });
