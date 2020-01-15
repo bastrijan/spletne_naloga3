@@ -179,14 +179,13 @@ rollDice.addEventListener('click',function(e){
 
 startAnotherBtn.addEventListener('click',function(e){
 e.preventDefault();
-if(userCount>=3)
+if(userCount>=2)
 {
 
-                document.getElementsByClassName("login-section")[0].style.display = "none";
                 showClass(document.getElementsByClassName("utils"));
                 //this is where we emit the new player
                 hideClass(document.getElementsByClassName("start-btn"));
-                socket.emit('newPlayer',data.username/* usernameID.value*/);
+              //  socket.emit('newPlayer',data.username/* usernameID.value*/);
                 showClass(document.getElementsByClassName("word"));
                 showClass(document.getElementsByClassName("info"));
                 showClass(document.getElementsByClassName("drawing"));
@@ -302,10 +301,10 @@ e.preventDefault();
                     for (let i = 0; i < ch.length; i++) {
                         ids.push(ch[i].id)
                     }
-                    sock.emit("tokenClicked", ids);
+                    socket.emit("tokenClicked", ids);
                 }
             } catch (err) {}
-        } else await sock.emit("tokenClicked", gottiId);
+        } else await socket.emit("tokenClicked", gottiId);
 
     });
     socket.on("moveToken", async (id, playerIndex, positions, tokensInside, tokensOutside, result) => {
@@ -349,7 +348,7 @@ e.preventDefault();
             socket.emit("finishedMoving", result);
         }
     });
-    sock.on("playerIndicator", (currentPlayerColor, id) => {
+    socket.on("playerIndicator", (currentPlayerColor, id) => {
         console.log("adding highlight");
     //    let all = document.querySelectorAll(".home .profilePic");
       //  for (let i = 0; i < all.length; i++) {

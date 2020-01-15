@@ -133,7 +133,7 @@ io.on('connection', function(socket) {
 
             //change lets draw
             io.to(lobbies[0].playerOnTurn).emit('letsDraw');
-            //and now he rolls the dice and so on 
+            //and now he rolls the dice and so on
 
 
             if(lobbies[0].players.length==1)
@@ -254,6 +254,10 @@ io.on('connection', function(socket) {
           		console.log("gottis Outside")
           		console.log(lobby.tokensOutside)
           		console.log("gottis Outside")
+              console.log("gottis Outside count")
+          		console.log(lobby.tokensOutside.length)
+          		console.log("gottis Outside count")
+
           		console.log("all gottis")
           		console.log(lobby.allTokens)
           		console.log("all gottis")
@@ -261,10 +265,22 @@ io.on('connection', function(socket) {
           		console.log(lobby.oppPositions)
           		console.log("oppositions")
           		console.log("--------------------------------------------")
-          		//as he just rolled he still has to move his token
+              console.log("player on turn ");
+              console.log(lobby.playerOnTurn);
+              //console.log(lobby.players[playerOnTurn]);
+              var playerOnTurn=0;
+              for(var k=0;k<0;k++)
+              {
+                if(lobby.players[k].id==lobby.playerOnTurn)
+                playerOnTurn=k;
+              }
+              console.log(playerOnTurn);
+              //as he just rolled he still has to move his token
           		// await lobby.players[lobby.playerOnTurn].emit("calculateAllGottiPos", lobby.tokensOutside);
-          		if (lobby.tokensOutside[lobby.playerOnTurn].length == 0) {
-          				lobby.movementAmount = UTILS.biasedRandom(6, 60)
+            //if(lobby.tokensOutside.length!=0)
+              if (lobby.tokensOutside[playerOnTurn].length == 0) {
+          				lobby.movementAmount = biasedRandom(6, 60);
+                  console.log(lobby.movementAmount);
           				//sees if there is any players ahead and tries to cut it
           		} else {
           			//set all players that are o the spot
