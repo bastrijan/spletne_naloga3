@@ -214,14 +214,15 @@ io.on('connection', function(socket) {
 //the players who have finished wont get to roll the dice
 
     socket.on("roll-dice",function(id){
+
           var rolledNum=game.random(6);
           while(rolledNum==0)
           {
             rolledNum=game.random(6);
           }
-          io.in(lobbies[0].lobbyId).emit('rolled',rolledNum, id);
+        //  io.in(lobbies[0].lobbyId).emit('rolled',rolledNum, id);
           //shake the tokens
-          io.in(lobbies[0].lobbyId).emit('clickTokenToMove',id);
+          //io.in(lobbies[0].lobbyId).emit('clickTokenToMove',id);
 
           makeRoll(lobbies[0]);
 
@@ -274,7 +275,6 @@ io.on('connection', function(socket) {
               console.log("gottis Outside count")
           		console.log(lobby.tokensOutside.length)
           		console.log("gottis Outside count")
-
           		console.log("all gottis")
           		console.log(lobby.allTokens)
           		console.log("all gottis")
@@ -319,6 +319,7 @@ io.on('connection', function(socket) {
           		await new Promise(r => setTimeout(r, 3000));
           		await gameController(lobby);
           }
+
 
           function biasedRandom(bias, degree) {
               console.log("calling " + bias + "with " + degree + " probablilty")
@@ -481,10 +482,14 @@ io.on('connection', function(socket) {
           function findPlayerOnTurnIndex(lobby){
             var playerOnTurn=0;
 
-            for(var k=0;k<0;k++)
+            for(var k=0;k<lobby.players.length;k++)
             {
-              if(lobby.players[k].id==lobby.playerOnTurn)
-              playerOnTurn=k;
+              console.log("player in the loop"+lobby.players[k].id);
+              console.log("indeks of the lobby player on turn "+lobby.playerOnTurn);
+              if(String(lobby.players[k].id)==String(lobby.playerOnTurn))
+              { console.log("matched");
+                  playerOnTurn=k;
+                }
             }
             console.log("player indeks");
             console.log(playerOnTurn);
@@ -529,6 +534,7 @@ io.on('connection', function(socket) {
           //the function that determens the next turn
           async function playerIndicator(lobby) {
               lobby.hasMoved = 1;
+              var nextPlayer=0;
               lobby.movableTokens = [];
               console.log("entered indicator");
               console.log("Player change"+lobby.noPlayerChange);
@@ -537,19 +543,41 @@ io.on('connection', function(socket) {
                     //  lobby.players.forEach(player => {
                             io.in(lobbies[0].lobbyId).emit("removeShakeAnimation", lobby.tokensInside, lobby.tokensOutside);
                       //});
+
                       //change to the next player
-                      var playerOnTurn=findPlayerOnTurnIndex(lobby.playerOnTurn);
-                      var nextPlayer = (playerOnTurn + 1) % 4;
-                      console.log("next player "+nextPlayer);
-                      console.log(" this lobby");
-                      console.log(lobby);
-                      console.log("player on turn"+playerOnTurn);
-                      console.log(lobby.allTokens.hasOwnProperty(nextPlayer));
-                        //while he has no more tokens make the next player be on turn
-                      while (!lobby.allTokens.hasOwnProperty(nextPlayer)) {
-                          nextPlayer = (nextPlayer + 1) % 4;
-                        //  console.log(nextPlayer);
+                      var playerOnTurn=findPlayerOnTurnIndex(lobby);
+                      //if got 0, set it on 2
+                      if(lobby.players.length==2)
+                      {
+                        if(playerOnTurn==0)
+                        {
+                          //go to the seccond
+                        nextPlayer=2;
+                      }else {
+
+                        nextPlayer=0;
                       }
+
+                      }else {
+                        //if 0, the the next is 1, if its 2 the nest is 2, if its 3 the next is 3, if its 4
+                        //if its 4 the next is 0
+                        //if there is not a fourth meber we ask
+                        if(lobby.players.length==3)
+                          if(nextTurn==4){
+                            nextPlayer=0;
+                          }
+                          else {
+                                      //there are 4 members
+                                  nextPlayer= (playerOnTurn + 1) % 4;
+                                }
+
+                      }
+                        //while he has no more tokens make the next player be on turn
+                    /*  while (!lobby.allTokens.hasOwnProperty(nextPlayer)) {
+                          nextPlayer = (nextPlayer + 1) % 4;
+                          console.log("next player 2:"+ nextPlayer);
+                        //  console.log(nextPlayer);
+                      } */
                       console.log("will change the colors now");
                        await new Promise(r => setTimeout(r, 300));
                       //set the color of the current player
@@ -563,12 +591,21 @@ io.on('connection', function(socket) {
                       console.log("next player is ");
                       console.log(nextPlayer);
                 //      if(lobby.players.length==2)
-                      if(lobby.players.length==2&&nextPlayer==2)
-                      {
-                        playerOnTurn=nextPlayer-1;
+                      if(lobby.players.length==2)
+                        {
+                          if(nextPlayer==2)
+                          {
+                              playerOnTurn=1;
+                          }else {
+                              playerOnTurn=0;
+                          }
+                        console.log("when there are two members the next is:"+nextPlayer+"the player on turn is:"+playerOnTurn);
+                        console.log("decremented playerOnTurn"+playerOnTurn);
                       }else {
-                        playerOnTurn+=1;
+                        //if there is 3 elements, first the next meber is 1, then 2,then 3
+                        playerOnTurn=nextPlayer;
                       }
+
                       lobby.playerOnTurn=lobby.players[playerOnTurn].id;
 
                           io.in(lobbies[0].lobbyId).emit("playerIndicator", lobby.currentPlayerColor, lobby.players[playerOnTurn].id);
