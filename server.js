@@ -66,11 +66,17 @@ let Lobby = function() {
     this.players = [];
     this.lastDataUrl = null;
     this.playerOnTurn = null;
+    this.movementAmount = 0;
     this.timer = null;
     this.timeLeft = null;
     this.guessedPlayers = [];
     this.allTokens = {};
+    this.noPlayerChange = 0;
+    //holds opponent positions
+    this.oppPositions = {}
 
+    //indicates if a player has played his turn or not
+    this.hasMoved = 1;
     //in the beginning everyone is in the house
     this.tokensInside = [
         ['red1', 'red2', 'red3', 'red4'],
@@ -127,6 +133,7 @@ io.on('connection', function(socket) {
 
             //change lets draw
             io.to(lobbies[0].playerOnTurn).emit('letsDraw');
+            //and now he rolls the dice and so on 
 
 
             if(lobbies[0].players.length==1)
@@ -187,36 +194,299 @@ io.on('connection', function(socket) {
         }
 
     });
+//the players who have finished wont get to roll the dice
 
-        socket.on("roll-dice",function(id){
+    socket.on("roll-dice",function(id){
           var rolledNum=game.random(6);
           while(rolledNum==0)
           {
             rolledNum=game.random(6);
           }
           io.in(lobbies[0].lobbyId).emit('rolled',rolledNum, id);
-          for(var k=0;k<lobbies[0].players.length;k++)
-          {
+          //shake the tokens
+          io.in(lobbies[0].lobbyId).emit('clickTokenToMove',id);
 
-            if(id=lobbies[0].players[k].id)
-            {
-              io.in(lobbies[0].lobbyId).emit('broadcastNumber', rolledNum,lobbies[0].players[k].username);
-            }
+          makeRoll(lobbies[0]);
+
+          });
+          //finding all the player tokens, and throwing the random number,
+          // sending to the frontend to do the animation
+          async function makeRoll(lobby) {
+          	//did not move yet
+          		lobby.hasMoved = 0;
+          		lobby.oppPositions = {};
+          		let myPositions = [];
+           //key will be like i- for available players
+          		for (let key in lobby.allTokens) {
+          			//if allTokens[i] exists-
+          				if (lobby.allTokens.hasOwnProperty(key)) {
+          					//set key2 from 0 to lobby.allTokens[i]-> that is color(4 colors)
+          						for (let key2 in lobby.allTokens[key]) {
+          							console.log("key1");
+          							console.log(key);
+          							console.log("key2");
+          							console.log(key2);
+          							//if allTokens[key][key2] exist
+          								if (lobby.allTokens[key].hasOwnProperty(key2)) {
+
+          										let val = lobby.allTokens[key][key2]
+          										console.log("value of the token");
+          										console.log(val);
+          										//if the token is somewhere on the field
+          										if (val > 0 && val < 100) {
+          											//se if the player is on the turn, if not set him in the opponent position
+          											//else set him in the mmy positions
+          												if (key != lobby.playerOnTurn) lobby.oppPositions[val] = key2
+          												else myPositions.push(val);
+          										}
+          								}
+          						}
+          				}
+          		}
+          		//see which tokens are inside
+          		//which are outside
+          		//all the tokens
+          		//and the token places of the opponents
+          		console.log("--------------------------------------------")
+          		console.log("gottis inside")
+          		console.log(lobby.tokensInside)
+          		console.log("gottis inside")
+          		console.log("gottis Outside")
+          		console.log(lobby.tokensOutside)
+          		console.log("gottis Outside")
+          		console.log("all gottis")
+          		console.log(lobby.allTokens)
+          		console.log("all gottis")
+          		console.log("oppositions")
+          		console.log(lobby.oppPositions)
+          		console.log("oppositions")
+          		console.log("--------------------------------------------")
+          		//as he just rolled he still has to move his token
+          		// await lobby.players[lobby.playerOnTurn].emit("calculateAllGottiPos", lobby.tokensOutside);
+          		if (lobby.tokensOutside[lobby.playerOnTurn].length == 0) {
+          				lobby.movementAmount = UTILS.biasedRandom(6, 60)
+          				//sees if there is any players ahead and tries to cut it
+          		} else {
+          			//set all players that are o the spot
+          				let biases = [];
+          				myPositions.forEach(mine => {
+          						for (let key in lobby.oppPositions)
+          								if ((key - mine) <= 6 && (key - mine) > 0) {
+          										console.log("there is someone at" + key - mine);
+          										biases.push(key - mine)
+          								}
+          				})
+
+          				//cuts players with 30% chance
+          				if (biases.length > 0) {
+          						lobby.movementAmount = biasedRandom(biases, 30)
+          				} else lobby.movementAmount = biasedRandom(6, 20)
+          		}
+          		//send to the frontend for the animation
+          		console.log("the movement amount came to be " + lobby.movementAmount)
+          		lobby.players.forEach(async player => {
+          			//send the player on turn(socket id and how much does he have to animate)
+          			io.in(lobby.lobbyId).emit("rolled", lobby.movementAmount , lobby.playerOnTurn );
+          				//samo socket emit
+          		});
+          		await new Promise(r => setTimeout(r, 3000));
+          		await gameController(lobby);
           }
-          //find a random number for the player on turn and notify all the players afterwards
-          //get gif for the dice number that has been rolled
 
-          console.log("player rolled");
-        });
+          function biasedRandom(bias, degree) {
+              console.log("calling " + bias + "with " + degree + " probablilty")
+              if (!Array.isArray(bias)) {
+                  let temp = bias;
+                  bias = []
+                  bias.push(temp);
+              }
+              let rand = Math.random().toFixed(2);
+              if (rand < (degree / 100)) {
+                  rand = Math.floor(Math.random() * bias.length);
+                  return bias[rand];
+              } else {
+                  rand = Math.ceil(Math.random() * 6);
+                  return rand;
+              }
+          }
 
-/*    socket.on("roll",()=>{
-      if (
-        games[socket.roomId].hasMoved == 1 && games[sock.roomId].players[games[sock.roomId].playerIndex].sock.id === sock.id) {
+          //the main turn function, defines what happens after the dice roll
+          async function  gameController (lobby) {
+            //still the same plaeyr
+              lobby.noPlayerChange = 0;
+              //set the sixCount
+              if (lobby.movementAmount != 6) this.sixCount = 0;
+              else lobby.sixCount++;
+              //if we threw the 6, we could thow again
+              if (lobby.sixCount != 3) {
+                  //find the tokens that can be moved and add the ahke animation
+                  await findMovableTokens();
 
-          games[socket.roomId].players[games[sock.roomId].playerIndex].sock.emit("removeTokenShake", "");
-          games[socket.roomId].makeRoll();
-      }
-    }); */
+                  //waiting for the calculations to be sent from the client to the server
+                  if (lobby.movableTokens.length == 0) playerIndicator(lobby);
+                  else if (lobby.movableTokens.length == 1) {
+                    //if there is only one token to move, move it
+                      await moveToken(lobby,lobby.movableTokens[0]);
+                  } else {
+                    //all the tokens that can be moved
+                      let movableTokensPositions = [];
+                        //for each movable token add them to the list
+                      lobby.movableTokens.forEach((id) => {
+                          movableTokensPositions.push(lobby.allTokens[lobby.playerOnTurn][id]);
+                      })
+                        //move the token
+                      if (lobby.tokensOutside[lobby.playerOnTurn].length == 0) await lobby.moveToken(lobby.movableTokens[0]);
+                      //checks if all the available gottis are in the same position
+                      else if (movableTokensPositions.every((val, i, arr) => val === arr[0])) {
+                          moveToken(lobby,lobby.movableTokens[0])
+                      }
+
+                  }
+              } else {
+                  lobby.sixCount = 0;
+                  lobby.playerIndicator();
+              }
+          }
+          //find all tokens that can be moved
+          async function  findMovableTokens(lobby) {
+              for (let key in lobby.allTokens[lobby.playerOnTurn]) {
+                  if (lobby.allTokens[lobby.playerOnTurn].hasOwnProperty(key)) {
+                      if (lobby.allTokens[lobby.playerOnTurn][key] == 0) {
+                        //send him to the list
+                          if (lobby.movementAmount == 6) lobby.movableTokens.push(key)
+                      } else if (lobby.isOnFinishLine(lobby.allTokens[lobby.playerOnTurn][key])) lobby.movableTokens.push(key)
+                  }
+              }
+
+              await io.in(lobby.lobbyId).emit("addShakeAnimation", lobby.movableTokens,lobby.playerOnTurn);
+          }
+          //moves one token from one location to another
+          async function moveToken(lobby,id) {
+            //no one to move
+              if (lobby.hasMoved == 0) {
+                //this means that the person has all players in the house
+                  if (lobby.allTokens[lobby.playerOnTurn][id] == 0) {
+                    console.log("get token out");
+                      lobby.getTokenOut(id);
+                  } else {
+                      //if there are tokens outside
+                      let positions = [];
+                      //estimation of the positions
+                      let currPos = lobby.allTokens[lobby.playerOnTurn][id];
+                      let finalPos = currPos + lobby.movementAmount;
+
+                      let result = {
+                          "killed": '',
+                          "powerUp": '',
+                          "tokenHome": '',
+                          "gameFinished": '',
+                      };
+                      //53 positions
+                      for (let i = currPos; i <= finalPos; i++) {
+                          if (i == 53) {
+                              i = 1;
+                              finalPos = finalPos % 52;
+                          }
+
+                          positions.push(i);
+                          if (i == 105 || i == 115 || i == 125 || i == 135) {
+                              //the token is home
+                              result["tokenHome"] = id;
+                              if (lobby.tokensInside[lobby.playerOnTurn].length == 0) {
+                                  //if all the players are inside the player is finished
+                                  result['gameFinished'] = lobby.playerOnTurn;
+                              }
+                          }
+
+                          if (lobby.currentPlayerColor == "red" && i == CONSTANTS.redStop) {
+                              finalPos = CONSTANTS.redEntry + finalPos - i - 1;
+                              i = CONSTANTS.redEntry - 1;
+                          } else if (lobby.currentPlayerColor == "green" && i == CONSTANTS.greenStop) {
+                              finalPos = CONSTANTS.greenEntry + finalPos - i - 1;
+                              i = CONSTANTS.greenEntry - 1;
+                          } else if (lobby.currentPlayerColor == "blue" && i == CONSTANTS.blueStop) {
+                              finalPos = CONSTANTS.blueEntry + finalPos - i - 1;
+                              i = CONSTANTS.blueEntry - 1;
+                          } else if (lobby.currentPlayerColor == "yellow" && i == CONSTANTS.yellowStop) {
+                              finalPos = CONSTANTS.yellowEntry + finalPos - i - 1;
+                              i = CONSTANTS.yellowEntry - 1;
+                          }
+                      }
+                      console.log("moving throught positions-----------")
+                      console.log(positions)
+                      console.log("moving throught positions-----------")
+                      lobby.allTokens[lobby.playerOnTurn][id] = positions[positions.length - 1];
+                      //checing final position for any token
+                      let r = lobby.checkFinalPosition(lobby.allTokens[lobby.playerOnTurn][id]);
+                      result['killed'] = r['killed'];
+                      //for each player show the token movement
+                      //lobby.players.forEach(async player => {
+                        io.in(lobby.lobbyId).emit("moveToken", id, lobby.playerOnTurn, positions, lobby.tokensInside, lobby.tokensOutside, result)
+                      //});
+                  }
+              }
+          }
+          socket.on("finishedMoving", (result) => {
+              //if (games[sock.roomId].players[games[sock.roomId].playerIndex].sock.id == sock.id) {
+                  //console.log("finished moving" + sock.id)
+                  if (result['gottiHome']) {
+                      let ind =lobbies[0].tokensOutside[lobbies[0].playerOnTurn].indexOf(result['tokenHome']);// games[sock.roomId].gottisOutside[games[sock.roomId].playerIndex].indexOf(result['gottiHome']);
+                      lobbies[0].tokensOutside[lobbies[0].playerOnTurn].splice(ind, 1);
+                      delete lobbies[0].allTokens[lobbies[0].playerOnTurn][result['tokenHome']];
+                  }
+                  if (result['gameFinished']) {
+                    console.log("game is finished");
+                      //games[sock.roomId].winners.push(games[sock.roomId].currentPlayerColor);
+                      //delete games[sock.roomId].allGottis[games[sock.roomId].playerIndex];
+                      //if (Object.keys(games[sock.roomId].allGottis).length == 1) {
+                        //  console.log("game really done");
+                        //  gameOver(sock);
+                      //}
+                  }
+                  if (result["killed"]) {
+                      let killed = result['killed']
+                      let ind = -1;
+                      let killedPlayerIndex = -1;
+                  //    for (let j = 0; j < games[sock.roomId].gottisOutside.length; j++) {
+                    //      if (games[sock.roomId].gottisOutside[j].indexOf(killed) !== -1) {
+                      //        ind = games[sock.roomId].gottisOutside[j].indexOf(killed);
+                        //      killedPlayerIndex = j;
+                          //    games[sock.roomId].gottisOutside[killedPlayerIndex].splice(ind, 1)
+                            //  games[sock.roomId].allGottis[killedPlayerIndex][killed] = 0;
+                              //games[sock.roomId].gottisInside[killedPlayerIndex].push(killed);
+                              //break;
+                          //}
+                      //}
+                  }
+                  playerIndicator(lobbies[0]);
+              });
+          //the function that determens the next turn
+          async function playerIndicator(lobby) {
+              lobby.hasMoved = 1;
+              lobby.movableTokens = [];
+
+                  if (lobby.noPlayerChange == 0) {
+                    //  lobby.players.forEach(player => {
+                            io.in(lobbies[0].lobbyId).emit("removeShakeAnimation", lobby.tokensInside, lobby.tokensOutside);
+                      //});
+                      //change to the next player
+                      lobby.playerOnTurn = (lobby.playerOnTurn + 1) % 4;
+                        //while he has no more tokens make the next player be on turn
+                      while (!lobby.allTokens.hasOwnProperty(lobby.playerOnTurn)) {
+                          lobby.playerOnTurn = (lobby.playerOnTurn + 1) % 4;
+                      }
+                      await new Promise(r => setTimeout(r, 300));
+                      //set the color of the current player
+                      if (lobby.playerOnTurn == 0) lobby.currentPlayerColor = "red";
+                      else if (lobby.playerOnTurn == 1) lobby.currentPlayerColor = "green";
+                      else if (lobby.playerOnTurn == 2) lobby.currentPlayerColor = "yellow";
+                      else if (lobby.playerOnTurn == 3) lobby.currentPlayerColor = "blue";
+                      //adds highlight around home of current player
+                      //lobby.players.forEach(player => {
+                          io.in(lobbies[0].lobbyId).emit("playerIndicator", lobby.currentPlayerColor, lobby.players[lobby.playerOnTurn].id)
+                      //});
+                  }
+              }
     socket.on('userStartedGame',function(){
 
       console.log("user has started the game");
@@ -258,8 +528,8 @@ io.on('connection', function(socket) {
             //  console.log("result of the next turn");
               //console.log(result);
           }
-          //player.sock.emit("startGame", g.powerUpsLocation, availablePlayers, g.gottisInside, playerIds, names)
-            //for every p;ayer send to his sock  availablePlayers, g.gottisInside, playerIds, names
+          //player.sock.emit("startGame", g.powerUpsLocation, availablePlayers, g.tokensInside, playerIds, names)
+            //for every p;ayer send to his sock  availablePlayers, g.tokensInside, playerIds, names
                 io.in(lobbies[0].lobbyId).emit("startGame",  availablePlayers, lobbies[0].tokensInside,lobbies[0].players );
 
             //setting ither players to watch when a player is made a drawer
@@ -305,11 +575,10 @@ io.on('connection', function(socket) {
               //      currLobby.guessedPlayers = [];
                 //});
                 if (currLobby.players.length > 1) {
-                    io.in(currLobby.lobbyId).emit('letsWatch', currLobby.playerOnTurn, currLobby.lastDataUrl);
-                    io.in(currLobby.lobbyId).emit('makeaguess', currLobby.playerOnTurn);
-                    next_turn(currLobby);
-                    io.in(currLobby.lobbyId).emit('timer', "180");
+                  //  next_turn(currLobby);
+                  playerIndicator(currLobby);
                 } else {
+                  //not relevant now
                     io.in(currLobby.lobbyId).emit('waiting');
                     let j = lobbies.map(function(e) { return e.lobbyId; }).indexOf(currLobby.lobbyId);
                     lobbies.splice(j, i);
@@ -331,71 +600,3 @@ io.on('connection', function(socket) {
         io.in(currLobby.lobbyId).emit('updateSB', currLobby.players, currLobby.playerOnTurn);
     });
 });
-
-function next_turn(lobby) {
-  //set an interval for the round and add function to it
-    lobby.timer = setInterval(function() {
-      //map players in lobby
-        let i = lobby.players.map(function(e) { return e.id; }).indexOf(lobby.playerOnTurn);
-        lobby.lastDataUrl = null;
-        console.log("***player map(current position)***");
-        console.log(i);
-
-        if (i < lobby.players.length - 1) {
-          //if we have 3 players, i is 1(1<3-1),
-          //not the last player(let the next player be the drawer)
-
-            lobby.playerOnTurn = lobby.players[i+1].id;
-            console.log("***player on turn****");
-            console.log(lobby.playerOnTurn);
-
-        } else {
-          //last player
-            console.log("last player");
-            console.log("***all players in the game***");
-            console.log(lobby.players);
-            var wonCount;
-            //save the data of the players current game in the database
-            for(var j=0;j<lobby.players.length;j++)
-            {
-              wonCount=0;
-              //getting the players that guessed correctly(won a round)
-              for (var k=0;k<lobby.guessedPlayers.length;k++)
-              {
-                //checking the socket.id-s
-                if(lobby.guessedPlayers.guessedPlayers[k]==lobby.players[j].id)
-                  wonCount++;
-
-              }
-              console.log("***changing the players game status***");
-              dbo.saveScore(lobby.players[j].username,lobby.players[j].score,wonCount);
-            }
-
-            //send to frontend that the game is finished(add styles and scoreboard)
-            io.in(lobbies[0].lobbyId).emit('gameFinished');
-
-            return 1;
-        //    lobby.playerOnTurn = lobby.players[0].id;
-          //  console.log("***drawing player****");
-          //  console.log(lobby.playerOnTurn);
-        }
-        //emit to the current playerReady
-        io.to(lobby.playerOnTurn).emit('letsDraw');
-
-
-        //player who has drawen now watches
-        io.in(lobby.lobbyId).emit('letsWatch', lobby.playerOnTurn, lobby.lastDataUrl);
-        //io.in(lobby.lobbyId).emit('makeaguess', lobby.playerOnTurn);
-        io.in(lobby.lobbyId).emit('updateSB', lobby.players, lobby.playerOnTurn);
-        io.in(lobby.lobbyId).emit('nextTurn');
-    }, 60000);
-
-    //setting the timer
-    lobby.timeLeft = setInterval(function() {
-
-        let timeleft = (180 - Math.ceil((Date.now() - startTime - lobby.timer._idleStart) / 1000));
-        io.in(lobby.lobbyId).emit('timer', timeleft.toString());
-    }, 1000);
-    return 0;
-
-}

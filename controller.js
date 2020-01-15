@@ -1,4 +1,4 @@
-/*
+/* 
 Cntroller for all the database logic
 
 */
@@ -16,6 +16,7 @@ exports.allgamers = function(req, res, next){
 		// res.render("allgamers.html", {gamer: gamer});
 	});
 }
+
 exports.random=function(max) {
   return Math.floor(Math.random() * Math.floor(max));
 }

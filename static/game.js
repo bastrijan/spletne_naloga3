@@ -15,6 +15,13 @@
     const CONSTANTS = {
         defaultColors: ['red', 'green', 'yellow', 'blue']
     }
+    let GAMEDATA = {
+        playerIds: [],
+        playerOnTurn: '',
+        movableTokens: [],
+        currentPlayerColor: '',
+    }
+
     let alphanumeric = /^[0-9a-zA-Z]+$/;
     let userCount=0;
     let mainSock=0;
@@ -283,10 +290,115 @@ e.preventDefault();
     socket.on('nextTurn', function() {
         nextTurn.play();
     });
+    document.addEventListener("click", async (e) => {
+        //if a gotti has been clicked
+        let gottiId = e.target.id;
+         if (/^\d*$/.test(gottiId)) {
+            try {
+                let ch = document.getElementById(gottiId).getElementsByClassName("Gotti");
+                if (ch[0]) {
+                    console.log("yess there is a fucking child")
+                    let ids = []
+                    for (let i = 0; i < ch.length; i++) {
+                        ids.push(ch[i].id)
+                    }
+                    sock.emit("tokenClicked", ids);
+                }
+            } catch (err) {}
+        } else await sock.emit("tokenClicked", gottiId);
+
+    });
+    socket.on("moveToken", async (id, playerIndex, positions, tokensInside, tokensOutside, result) => {
+        GAMEDATA.playerOnTurn = playerIndex;
+        //remove the animation
+        removeShakeAnimation(tokensInside, tokensOutside);
+        let g = document.getElementById(id);
+        let fd;
+
+        for (let i = 0; i < positions.length - 1;) {
+            fd = document.getElementById(positions[i]);
+            //if two gottis incountered in the way removes the classes that makes them smaller
+            fdGottis = fd.getElementsByClassName("token");
+            //if there are less or eq to 2 tha add the two token class
+            if (fdGottis.length <= 2) {
+                fd.classList.remove("twoTokens")
+            } else if (fdGottis.length == 3) {
+              //if not add the multiple token class
+                fd.classList.remove("multipleTokens");
+            }
+            //if the gotti has reached the finish line
+            i++;
+            fd = document.getElementById(positions[i]);
+            if (fd) {
+                fdGottis = fd.getElementsByClassName("token");
+                //checks the position for any opponents or powerups
+                await new Promise(r => setTimeout(r, 200))
+                if (fdGottis.length === 2) fd.classList.add("twoTokens")
+                else if (fdGottis.length > 2) fd.classList.add("multipleTokens")
+                fd.appendChild(g);
+            }
+            if (i == positions.length - 1) {
+                //check the result and add the action
+                if (result["killed"])  console.log("killed");//killGotti(result['killed']);
+                if (result["gottiHome"]) console.log("got home");//gottiHome(result['gottiHome'])
+                if (result["gameFinished"]) console.log("finished");//gottiHome(result['gottiHome'])
+            }
+        }
+        //if he finished the move
+        if (GAMEDATA.playerIds[GAMEDATA.playerIndex] == sock.id) {
+            socket.emit("finishedMoving", result);
+        }
+    });
+    sock.on("playerIndicator", (currentPlayerColor, id) => {
+        console.log("adding highlight");
+    //    let all = document.querySelectorAll(".home .profilePic");
+      //  for (let i = 0; i < all.length; i++) {
+        //    if (all[i].className.includes("highLight")) {
+          //      all[i].classList.remove("highLight");
+            //    break;
+            //}
+        //}
+        GAMEDATA.currentPlayerColor = currentPlayerColor;
+        let home = document.querySelector("." + currentPlayerColor + ".home .profilePic");
+        home.classList.add('highLight');
+        if (sock.id === id) {
+          //add the heartbeat to the gif -> not neccessary
+          //maybe better to show the class
+          showClass(document.getElementsByClassName("gif"));
+            document.querySelector(".gif").classList.add("heartBeat");
+        }
+    });
+
+    socket.on("addShakeAnimation", (movableTokens,currentPlayer) => {
+      //if its this socket
+      if(socket.id==currentPlayer)
+        movableTokens.forEach(element => {
+            var d = document.getElementById(element);
+            d.classList.add("useMe")
+        });
+    });
+    removeShakeAnimation = (tokensInside, tokensOutside) => {
+        for (let i = 0; i < tokensOutside.length; i++) {
+            for (let j = 0; j < tokensOutside[i].length; j++) {
+                let gotti = document.querySelector("#" + tokensOutside[i][j]);
+                if (gotti) gotti.classList.remove("useMe")
+            }
+        }
+        for (let i = 0; i < tokensInside.length; i++) {
+            for (let j = 0; j < tokensInside[i].length; j++) {
+                let gotti = document.querySelector("#" + tokensInside[i][j]);
+                if (gotti) gotti.classList.remove("useMe")
+            }
+        }
+    }
+    socket.on("removeShakeAnimation", (tokensInside, tokensOutside) => {
+        removeShakeAnimation(tokensInside, tokensOutside);
+    })
+
     socket.on('broadcastNumber',function(number,username){
     //say who anwered the questions correctly
     debugger;
-    
+
   var chat=document.getElementsByClassName('chat_content_inner')[0];
   var currTime=new Date(Date.now()).toLocaleString();
   var html='<div class="chat_message type_normal cf"><p class="message"> '+username+' just rolled the number'+number+'at'+currTime+'</p></div>';

@@ -84,7 +84,18 @@ body {
 .gif{
   border-radius: 50%;
   cursor: pointer;
-  
+
+}
+
+.twoTokens .token {
+    height: 65% !important;
+}
+
+.multipleTokens .token {
+    height: 50% !important;
+}
+.useMe {
+    animation: shake 1s ease-in-out infinite;
 }
 .roll {
   border-radius: 50%;
