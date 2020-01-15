@@ -25,7 +25,7 @@ let collection;
 
 //connecting to the database
 // connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/DrawAndGuessGame')
+mongoose.connect('mongodb://localhost:27017/LudoDatabase')
   .then(() =>  console.log('connection succesful'))
   .catch((err) => console.error(err));
 
@@ -339,6 +339,7 @@ io.on('connection', function(socket) {
 
           //the main turn function, defines what happens after the dice roll
           async function  gameController (lobby) {
+            console.log("entered the controller");
             //still the same plaeyr
               lobby.noPlayerChange = 0;
               //set the sixCount
@@ -346,13 +347,15 @@ io.on('connection', function(socket) {
               else lobby.sixCount++;
               //if we threw the 6, we could thow again
               if (lobby.sixCount != 3) {
+                console.log("six count is not 3 ");
                   //find the tokens that can be moved and add the ahke animation
                   await findMovableTokens(lobby);
+                  console.log("found movable tokens");
+                  console.log(lobby.movableTokens);
                     var playerOnTurn=findPlayerOnTurnIndex(lobby);
                   //waiting for the calculations to be sent from the client to the server
                   if (lobby.movableTokens.length == 0) playerIndicator(lobby);
                   else if (lobby.movableTokens.length == 1) {
-                    console.log("entered the moving ");
                     //if there is only one token to move, move it
                       await moveToken(lobby,lobby.movableTokens[0]);
                   } else {
@@ -381,6 +384,7 @@ io.on('connection', function(socket) {
           }
           //find all tokens that can be moved
           async function  findMovableTokens(lobby) {
+            console.log("find movable tokens");
               var playerOnTurn=findPlayerOnTurnIndex(lobby);
 
               for (let key in lobby.allTokens[playerOnTurn]) {
@@ -405,9 +409,12 @@ io.on('connection', function(socket) {
             }
           //moves one token from one location to another
           async function moveToken(lobby,id) {
+            console.log("entered the moving token ");
+
             var playerOnTurn=findPlayerOnTurnIndex(lobby);
             //no one to move
               if (lobby.hasMoved == 0) {
+                console.log("has moved is 0");
                 //this means that the person has all players in the house
                   if (lobby.allTokens[playerOnTurn][id] == 0) {
                     console.log("get token out");
@@ -465,7 +472,8 @@ io.on('connection', function(socket) {
                       result['killed'] = r['killed'];
                       //for each player show the token movement
                       //lobby.players.forEach(async player => {
-                        io.in(lobby.lobbyId).emit("moveToken", id, lobby.playerOnTurn, positions, lobby.tokensInside, lobby.tokensOutside, result)
+                      console.log("sending moving token");
+                        io.in(lobby.lobbyId).emit("moveToken", id, lobby.playerOnTurn, positions, lobby.tokensInside, lobby.tokensOutside, result);
                       //});
                   }
               }
@@ -539,7 +547,7 @@ io.on('connection', function(socket) {
                       console.log(lobby.allTokens.hasOwnProperty(nextPlayer));
                         //while he has no more tokens make the next player be on turn
                       while (!lobby.allTokens.hasOwnProperty(nextPlayer)) {
-                          nextPlayer = (playerOnTurn + 1) % 4;
+                          nextPlayer = (nextPlayer + 1) % 4;
                         //  console.log(nextPlayer);
                       }
                       console.log("will change the colors now");
@@ -554,8 +562,20 @@ io.on('connection', function(socket) {
                       //lobby.players.forEach(player => {
                       console.log("next player is ");
                       console.log(nextPlayer);
-                      lobby.playerOnTurn=lobby.players[nextPlayer].id;
-                          io.in(lobbies[0].lobbyId).emit("playerIndicator", lobby.currentPlayerColor, lobby.players[nextPlayer].id)
+                //      if(lobby.players.length==2)
+                      if(lobby.players.length==2&&nextPlayer==2)
+                      {
+                        playerOnTurn=nextPlayer-1;
+                      }else {
+                        playerOnTurn+=1;
+                      }
+                      lobby.playerOnTurn=lobby.players[playerOnTurn].id;
+
+                          io.in(lobbies[0].lobbyId).emit("playerIndicator", lobby.currentPlayerColor, lobby.players[playerOnTurn].id);
+                          io.in(lobbies[0].lobbyId).emit("updateSB", lobby.players, lobby.players[playerOnTurn].id);
+                          io.in(lobbies[0].lobbyId).emit("letsDraw",  lobby.players[playerOnTurn].id);
+                          io.in(lobbies[0].lobbyId).emit("letsWatch", lobby.players[playerOnTurn].id);
+
                       //});
                   }
               }

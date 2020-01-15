@@ -244,7 +244,7 @@ e.preventDefault();
         } else if (fdLen.length > 2) {
             fd.classList.add("multipleTokens")
         }
-        sock.emit("finishedMoving", "");
+        socket.emit("finishedMoving", "");
     })
     socket.on("rolled",function(num,id){
       debugger;
@@ -323,6 +323,8 @@ e.preventDefault();
 
     });
     socket.on("moveToken", async (id, playerIndex, positions, tokensInside, tokensOutside, result) => {
+
+      console.log("in move token");
         GAMEDATA.playerOnTurn = playerIndex;
         //remove the animation
         removeShakeAnimation(tokensInside, tokensOutside);
@@ -359,12 +361,15 @@ e.preventDefault();
             }
         }
         //if he finished the move
-        if (GAMEDATA.playerIds[GAMEDATA.playerIndex] == sock.id) {
+        if (GAMEDATA.playerIds[GAMEDATA.playerIndex] == socket.id) {
             socket.emit("finishedMoving", result);
         }
     });
     socket.on("playerIndicator", (currentPlayerColor, id) => {
         console.log("adding highlight");
+        nextTurn.play();
+
+
     //    let all = document.querySelectorAll(".home .profilePic");
       //  for (let i = 0; i < all.length; i++) {
         //    if (all[i].className.includes("highLight")) {
@@ -375,11 +380,14 @@ e.preventDefault();
         GAMEDATA.currentPlayerColor = currentPlayerColor;
         let home = document.querySelector("." + currentPlayerColor + ".home .profilePic");
         home.classList.add('highLight');
-        if (sock.id === id) {
+        if (socket.id === id) {
           //add the heartbeat to the gif -> not neccessary
           //maybe better to show the class
           showClass(document.getElementsByClassName("gif"));
             document.querySelector(".gif").classList.add("heartBeat");
+        }else {
+          hideClass(document.getElementsByClassName("gif"));
+
         }
     });
 
@@ -565,91 +573,29 @@ document.getElementById("generalScore").innerHTML="General score: "+data.score;
         showClass(document.getElementsByClassName('btn-start-Another'));
 
     });
-    socket.on('letsWatch', function(leaderSocket, dataURL) {
+    socket.on('letsWatch', function(leaderSocket) {
+      console.log("lets watch got id "+leaderSocket);
         if (socket.id != leaderSocket) {
+            hideClass(document.getElementsByClassName("roll"));
             showClass(document.getElementsByClassName("msg"));
         }
     });
 
 
-    socket.on('letsDraw', function(word) {
-
-        showClass(document.getElementsByClassName("utils"));
-        hideClass(document.getElementsByClassName("msg"));
+    socket.on('letsDraw', function(leaderSocket) {
+      console.log("lets draw got id "+leaderSocket);
+      console.log(socket.id);
+      if (socket.id == leaderSocket){
+        debugger;
+        showClass(document.getElementsByClassName("roll"));
+      //  hideClass(document.getElementsByClassName("msg"));
+      }
 
 
 
         // canvas drawing functions base code from
         // http://www.williammalone.com/articles/create-html5-canvas-javascript-drawing-app/ and
         // https://github.com/ThierrySans/CSCC09/blob/master/lectures/02/src/html5/js/draw.js
-        let clickX = [];
-        let clickY = [];
-        let clickDrag = [];
-        let clickColor = [];
-        let clickSize = [];
-        let paint = false;
-        let currentColor = "#000000";
-        let currentSize = 4;
-
-
-
-        function addClick(x, y, dragging) {
-            clickX.push(x);
-            clickY.push(y);
-            clickDrag.push(dragging);
-            clickColor.push(currentColor);
-            clickSize.push(currentSize);
-        }
-
-
-        let undoLast = function() {
-            clickX.pop();
-            clickY.pop();
-            clickDrag.pop();
-            clickColor.pop();
-            clickSize.pop();
-            redraw();
-        };
-
-        let changeColor = function() {
-            currentColor = this.value;
-        };
-
-        let setSizeSmall = function() {
-            currentSize = 2;
-        };
-
-        let setSizeRegular = function() {
-            currentSize = 4;
-        };
-
-        let setSizeBig = function() {
-            currentSize = 8;
-        };
-
-        // function base code from
-        // https://stackoverflow.com/questions/79816/need-javascript-code-for-button-press-and-hold
-        function heldDown(btn, action, initial, start = initial) {
-            let t;
-
-            let repeat = function() {
-                action();
-                t = setTimeout(repeat, start);
-                if (start > 8)
-                    start = start / 2;
-            };
-
-            btn.onmousedown = function() {
-                repeat();
-            };
-
-            btn.onmouseup = function() {
-                clearTimeout(t);
-                start = initial;
-            };
-
-            btn.onmouseleave = btn.onmouseup;
-        }
 
     });
 
