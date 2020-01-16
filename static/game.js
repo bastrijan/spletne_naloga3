@@ -424,6 +424,8 @@ e.preventDefault();
     });
     removeShakeAnimation = (tokensInside, tokensOutside) => {
       debugger;
+      document.getElementsByClassName(GAMEDATA.currentPlayerColor+" home")[0].children[5].classList.remove("highLight");// document.querySelector("." +GAMEDATA.currentPlayerColor + ".home .profilePic");
+      //home.classList.remove('highLight');
       //ne radi isto
         for (let i = 0; i < tokensOutside.length; i++) {
             for (let j = 0; j < tokensOutside[i].length; j++) {
