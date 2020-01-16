@@ -258,8 +258,14 @@ e.preventDefault();
     socket.on("startGame", function(availablePlayers, tokensInside,players){
       //add for eac one(one by one player)
       debugger;
-
-
+      console.log(players);
+      for(var i=0;i<players.length;i++)
+      {
+        console.log("Pushing ids");
+        console.log(players[i].id);
+      GAMEDATA.playerIds.push(players[i].id);
+      }
+      console.log(GAMEDATA.playerIds);
       if(socket.id!=players[0].id)
       {
         hideClass(document.getElementsByClassName("start-btn"));
@@ -306,6 +312,7 @@ e.preventDefault();
     });
     document.addEventListener("click", async (e) => {
         //if a gotti has been clicked
+        debugger;
         let gottiId = e.target.id;
          if (/^\d*$/.test(gottiId)) {
             try {
@@ -360,8 +367,22 @@ e.preventDefault();
                 if (result["gameFinished"]) console.log("finished");//gottiHome(result['gottiHome'])
             }
         }
+        //THIS IS WHERE THE PROBLEM IS
+        console.log("players are:"+GAMEDATA.playerIds);
         //if he finished the move
-        if (GAMEDATA.playerIds[GAMEDATA.playerIndex] == socket.id) {
+        for(var k=0;k<GAMEDATA.playerIds.length;k++)
+        {
+          console.log(GAMEDATA.playerIds[k]);
+          if(GAMEDATA.playerIds[k]==socket.id)
+          {
+            console.log("is found and will finish the move ");
+            socket.emit("finishedMoving", result);
+
+          }
+        }
+        console.log("find the id thats equal to player on turn:"+GAMEDATA.playerIds[GAMEDATA.playerOnTurn]);
+        console.log("playerOnTurn:"+GAMEDATA.playerOnTurn);
+        if (GAMEDATA.playerIds[GAMEDATA.playerOnTurn] == socket.id) {
             socket.emit("finishedMoving", result);
         }
     });
@@ -402,6 +423,8 @@ e.preventDefault();
         });
     });
     removeShakeAnimation = (tokensInside, tokensOutside) => {
+      debugger;
+      //ne radi isto
         for (let i = 0; i < tokensOutside.length; i++) {
             for (let j = 0; j < tokensOutside[i].length; j++) {
                 let gotti = document.querySelector("#" + tokensOutside[i][j]);
@@ -548,7 +571,7 @@ document.getElementById("generalScore").innerHTML="General score: "+data.score;
     socket.on('waitingToStart', function(socketid) {
   //    console.log('waiting to start');
     //  console.log(socket.id);
-
+//GAMEDATA.playerIds = playerIds;
       debugger;
       if(mainSock===socket.id){ //socket.id==leaderSocket){
         mainSock=socket.id;
