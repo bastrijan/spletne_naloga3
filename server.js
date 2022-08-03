@@ -12,20 +12,20 @@ var mongoose=require('mongoose');
 const app = express();
 const server = http.Server(app);
 const io = socketIO(server);
-const port = process.env.PORT || 3000;
+const port = 3000;
 var dbo=require('./dbOperations');
 var game = require("./controller");
 
 var bodyParser = require('body-parser');
 
 const MongoClient = require('mongodb').MongoClient;
-const uri = process.env.MONGODB_URI || "mongodb://heroku_nft10gvf:822nen9r3b8inasjmj2bg8ks0h@ds049548.mlab.com:49548/heroku_nft10gvf";
+const uri = "mongodb+srv://ludo_game:6aCo2tAWPel55Bct@cluster0.1tanfp3.mongodb.net/?retryWrites=true&w=majority";
 const client = new MongoClient(uri, { useNewUrlParser: true });
 let collection;
 
 //connecting to the database
 // connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/LudoDatabase')
+mongoose.connect('mongodb+srv://ludo_game:6aCo2tAWPel55Bct@cluster0.1tanfp3.mongodb.net/?retryWrites=true&w=majority')
   .then(() =>  console.log('connection succesful'))
   .catch((err) => console.error(err));
 

@@ -6,7 +6,7 @@
  */
 
 
-var dburl = 'mongodb://localhost:27017/DrawAndGuessGame' // link  to MongoDB
+var dburl = 'mongodb+srv://ludo_game:6aCo2tAWPel55Bct@cluster0.1tanfp3.mongodb.net/?retryWrites=true&w=majority' // link  to MongoDB
 
 
 var mongoose = require('mongoose');
