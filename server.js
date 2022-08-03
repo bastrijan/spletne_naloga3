@@ -25,7 +25,7 @@ let collection;
 
 //connecting to the database
 // connect to MongoDB
-mongoose.connect('mongodb+srv://ludo_game:6aCo2tAWPel55Bct@cluster0.1tanfp3.mongodb.net/?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://spletne_tehnologije:yDQCpBb9camEHNWA@cluster0.hk0lfvm.mongodb.net/ludo_game_db')
   .then(() =>  console.log('connection succesful'))
   .catch((err) => console.error(err));
 
